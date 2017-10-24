@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>db</title>
+
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+
+  <!-- <link rel="stylesheet" type="text/css" href="../../static/css/bootstrap.min.css"> -->
+  <link rel="stylesheet" type="text/css" href="../../static/css/styles.min.css">
+
+  <script type="text/javascript" src="../../static/js/libs.min.js"></script>
+
+<style>
+	
+	*{
+		padding: 0px;
+		margin: 0px;
+	}
+	table {
+		font-size: 8px;
+	}
+	/* style the table */
+	table { 
+	  width: 100%; 
+	  border-collapse: collapse; 
+	}
+	/* zebra stripes */
+	tr:nth-of-type(odd) { 
+	  background: #eee; 
+	}
+	th { 
+	  background: #333; 
+	  color: white; 
+	  font-weight: bold; 
+	}
+	td, th { 
+	  padding: 6px;
+	  border: 1px solid #ccc; 
+	  text-align: left; 
+	}
+
+</style>
+
+
+</head>
+<body>
+
+	<div>
+	Element:
+	<select class="form-control" id="keys">
+		<option value="atoms" selected>Atoms</option>
+		<option value="compounds">Compounds</option>
+		<option value="mixtures">Mixtures</option>
+		<option value="molecules">Molecules</option>
+		<option value="particles">Particles</option>
+	</select>
+	</div>
+
+	<div id="table"></div>
+
+	<p>to see all props as json, open inspector paste this in the console:</p>
+	<code>JSON.stringify(jsonData,null,1);</code>
+
+	<!-- TEMPLATES -->
+	<script type="text/template" class="table-tmpl">
+	<table id="<%- data.title %>" class="table table-bordered table-condensed table-hover table-responsive">
+	  	<!-- <caption><%- data.title %></caption> -->
+		<tr class="columns">
+			<% _.each( data.keys, function( value, key ){ %>
+				<th><%- value %></th>
+			<% }); %>
+		</tr>
+	</table>
+	</script>
+
+	<script type="text/template" class="row-tmpl">=
+	    <tr class="rows">
+			<% _.each( data, function( value, key ){ %>
+				<td><%- value %></td>
+			<% }); %>
+		</tr>
+	</script>
+
+	<script type="text/javascript" src="../../static/js/atoms.min.js"></script>
+	<script>
+
+	// setup templates
+	var table = _.template( $( ".table-tmpl" ).html() );
+	var row = _.template( $( ".row-tmpl" ).html() );
+
+	var _elements,jsonData;
+
+    FABULA.loadPageData( '../../static/data/atoms/*.json', update );
+
+	function update(){
+		_elements = window.location.hash.split('#')[1];
+		if(_elements===undefined||_elements===''){
+			_elements="atoms";
+		}
+		render();
+	}
+
+	function render(){
+		jsonData=FABULA.DATA[_elements];
+		drawTable( jsonData );
+	}
+
+	function drawTable(items) {
+
+		for (var i = 0; i<items.length; i++) {
+			
+			var data = items[i];
+			
+			$('#'+data.id).remove();
+			
+			var tableData = {};
+			tableData.title = data.id;
+			tableData.keys = Object.keys(data);
+
+			$("#table").append( table({'data':tableData}) );
+			$( "#"+data.id ).append( row( {'data':data} ) );
+		}
+
+		$("#table").append( table({'data':tableData}) );
+	}
+
+
+	// we hide a lot of table data as we don't need it.
+	function reduceTable(){
+		var keepKeys = [];
+		$('th').each( function(count,val){ 
+			val=$(val).text();
+			if(!_.contains( keepKeys, val)){
+				$('table td:nth-child('+(count+1)+'), table th:nth-child('+(count+1)+')').hide();
+			}
+		});
+	}
+
+
+	// CONTROLLERS
+	$('#keys').change(function() {
+		window.location =  "#"+$('#keys').val()
+	});
+	window.onhashchange = update;
+    
+
+	</script>
+
+</body>
+</html>

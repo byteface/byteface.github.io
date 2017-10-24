@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>Atoms Gallery</title>
+
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+
+  <link rel="stylesheet" type="text/css" href="../../static/css/bootstrap.min.css">
+  <!-- <link rel="stylesheet" type="text/css" href="../../static/css/styles.min.css"> -->
+  <script type="text/javascript" src="../../static/js/libs.min.js"></script>
+
+<style type="text/css">
+
+  .card {
+    float: left;
+    margin-bottom: 150px;
+    border: 0;
+    background-color: black;
+    border-color: white;
+    /*border: 1px solid white;*/
+    padding: 5px;
+  }
+
+  p {
+    font-size: 1em;
+  }
+
+  a {
+    float: right;
+  }
+
+
+  body {
+    background-color: black;
+  }
+
+
+  *, h1 {
+    color: white;
+  }
+
+
+  .title-bar {
+    background-color: white;
+    width: 100%;
+    margin-bottom: 20px;
+    /*padding-bottom: 20px;*/
+  }
+  .title-bar h1 {
+    color: black;
+  }
+
+
+</style>
+
+
+</head>
+<body>
+
+
+
+
+  
+  <div class="container-fluid">
+    <div class="title-bar"><h1>Atoms</h1></div>
+    <div id="atoms"></div>
+  </div>
+
+  <script type="text/template" id="atom-tmpl">
+
+          <div class="card">
+            <h2><%= atom.symbol %></h2>
+            <p><%= atom.name %></p>
+            <canvas id="canvas_<%= atom.id %>"></canvas>
+            <a href="/pages/atom.html#<%= atom.id %>" class="btn-sm">i</a>
+          </div>
+          
+    
+  </script>
+
+  <script type="text/javascript" src="../../static/js/main.min.js"></script>
+
+  <script type="text/javascript">
+
+    var atomTemplate = _.template( $( "#atom-tmpl" ).html() );
+
+
+    function loadPageData( url, callback ){
+        $.ajax({dataType:"json",url:url,success:function(r){
+
+            FABULA.DATA.atoms = r.data; // TODO- put this on FAB and pass the param?
+            callback.apply();
+            
+          },
+          error: function(r){
+            window.console.log('json data could not be loaded');
+          }
+        });
+    };
+
+    loadPageData( '../../static/data/atoms/*.json', render );
+
+
+    function render() {
+      for( var i=0; i<FABULA.DATA.atoms.length; i++ ){
+        var atom = FABULA.DATA.atoms[i];
+        $( "#atoms" ).append( atomTemplate( { 'atom':atom } ) );  
+        drawAtom( atom );
+        drawElectrons( atom );
+      }
+    }
+
+    // TODO - pass the canvas
+    function drawAtom( atom ){
+      // window.console.log( 'drawAtom' );
+      // window.console.log( atom );
+
+
+      var canvas = document.getElementById('canvas_'+atom.id);
+      var context = canvas.getContext('2d');
+      
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      
+      var radius = atom['atomic-radius']/10;
+
+      context.beginPath();
+      context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+      // context.fillStyle = getRandomColor();//'green';
+
+      var gradient = context.createRadialGradient(100, 100, 100, 100, 100, 0);
+      gradient.addColorStop(0, getRandomColor() );
+      gradient.addColorStop(1, getRandomColor() );
+      context.fillStyle = gradient;
+        
+
+
+      context.fill();
+      context.lineWidth = 1;
+      // context.strokeStyle = '#000';
+      // context.stroke();
+
+    }
+
+
+
+    function drawElectrons( atom ){
+
+
+      var SPACING = 10;
+
+      var electrons = atom['electrons'];
+      for( var i=0; i<electrons.length; i++ ){
+
+        var electronCount = electrons[i]; // 360 gives angles for each if we plotting equally
+
+        var canvas = document.getElementById('canvas_'+atom.id);
+        var context = canvas.getContext('2d');
+        
+        var centerX = canvas.width / 2;
+        var centerY = canvas.height / 2;
+        
+        var radius = (atom['atomic-radius']/10) + (SPACING*(i+1));
+
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+        // context.fillStyle = getRandomColor();//'green';
+        // context.fill();
+        context.lineWidth = 1;
+        context.strokeStyle = '#00aaff';
+        context.stroke();
+
+
+        window.console.log( electronCount );
+
+        for(var j=0; j<electronCount; j++) {
+
+            var ELECTRON_SIZE = 2;
+
+            var x = radius * Math.cos(2 * Math.PI * j / electronCount);
+            var y = radius * Math.sin(2 * Math.PI * j / electronCount);   
+            // $("#center").append("<div class='point' style='left:"+ x +"px;top:"+ y +"px'></div>");    
+
+            context.beginPath();
+            context.arc(centerX+x, centerY+y, ELECTRON_SIZE, 0, 2 * Math.PI, false);
+            context.fillStyle = 'white';//getRandomColor();//'green';
+            context.fill();
+            // context.lineWidth = 1;
+            // context.strokeStyle = '#00aaff';
+            // context.stroke();
+
+        }
+
+
+      }
+
+
+
+
+
+
+    }
+
+
+
+    // if hash changes redraw
+    // window.onhashchange = setAtom;
+    
+
+    $('#atoms').on( "click", 'li', function(){
+      // window.location.hash = 
+    } );
+
+
+    function getRandomColor () {
+      var hex = Math.floor(Math.random() * 0xFFFFFF);
+      return "#" + ("000000" + hex.toString(16)).substr(-6);
+    }
+
+
+  </script>
+
+</body>
+</html>

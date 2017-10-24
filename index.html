@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <title>Elements</title>
+
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+
+  <link rel="stylesheet" type="text/css" href="static/css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="static/css/styles.min.css">
+  <link rel="stylesheet" type="text/css" href="static/css/pages_elements.min.css">
+
+  <script type="text/javascript" src="static/js/libs.min.js"></script>
+
+</head>
+<body>
+
+  <div id="ui" class="container-fluid">
+    <div class="title-bar"><h1>Elements</h1></div>
+    <div id="atoms" class="flex-container"></div>
+    <div id="props"></div>
+  </div>
+
+  <div id="info"></div>
+  <!-- HTML END -->
+
+  <!-- JS TEMPLATES -->
+  <script type="text/template" id="atom-tmpl">
+    <div class="flex-item card" data-id="<%= atom.id %>">
+        <sup class="<%= atom.id %>_property"><%= atom.number %></sup>
+        <h4><%= atom.symbol %></h4>
+        <p><%= atom.name %></p>
+    </div>
+  </script>
+  <!-- *-->
+  <script type="text/template" id="info-tmpl">
+    <div class="overlay">
+        <span style="float: right;"><%= atom.number %></span>
+        <h3><%= atom.symbol %></h3>
+        <p><%= atom.name %></p>
+        <a style="float: right;" href="/pages/atom.html#<%= atom.id %>" class="btn-sm">more...</a>
+    </div>
+    <canvas id="canvas_<%= atom.id %>" width="400" height="100"></canvas> <!-- note width/height attr to be a ratio -->
+  </script>
+  <!-- *-->
+  <script type="text/template" id="prop-tmpl">
+    Properties:
+    <div class="props">
+        <form>
+          <% _(props).each(function(prop) { %>
+            <input title="<%= prop %>" type="radio" name="property" value="<%= prop %>">
+            <%= prop %>
+            <br>
+          <% }); %>
+      </form>
+    </div>
+  </script>
+
+
+  <script type="text/javascript" src="static/js/atoms.min.js"></script>
+  <script type="text/javascript">
+
+    // register templates
+    var atomTemplate = _.template( $( "#atom-tmpl" ).html() );
+    var infoTemplate = _.template( $( "#info-tmpl" ).html() );
+    var propTemplate = _.template( $( "#prop-tmpl" ).html() );
+
+    // load atom data
+    FABULA.loadPageData( 'static/data/atoms/*.json', render );
+
+    function render(){
+      drawPeriodicTable();
+      drawUI();
+    }
+
+    // draws the periodic table
+    function drawPeriodicTable() {
+
+      var cols = PeriodicTable.groups[0].length;
+      var rows = PeriodicTable.groups.length;
+      for( var i=0; i<cols; i++ ){
+        for( var j=0; j<rows; j++ ){
+          // window.console.log( PeriodicTable.periods[i][j] );
+          var val = PeriodicTable.periods[i][j];
+          if(val){
+            var atom = FABULA.getElementByKeyValuePair( 'symbol', val );
+            $( "#atoms" ).append( atomTemplate( { 'atom':atom } ) );
+          }else{
+            $( "#atoms" ).append( '<div class="flex-item null"></div>' );
+          }
+        }
+      }
+
+    }
+
+    // draw any other interface elements
+    function drawUI(){
+      var props = Object.keys( FABULA.DATA.atoms[0] ).sort();
+      $( "#props" ).append( propTemplate( { 'props':props } ) );
+    }
+
+
+
+    // ----- APP CONTROLS
+    var STATE = { atom:"", property:"" };
+    STATE.getURL = function(){
+        return '#'.concat("atom:"+(this.atom||'hydrogen')).concat("&property:"+(this.property||'atomic-number')); // TODO - loop state props?
+    };
+
+    // url: #atom=hydrogen&property=weight
+    STATE.getObjectFromURLString = function( url ){
+        var obj=this;
+        var data = url.split("#")[1];
+        _.each( data.split("&"), function(each,i){ // TODO - remove underscore
+            var p=each.split(":");
+            var key = p[0];
+            var value = p[1];
+            obj[key]=value;
+        } );
+        return obj;
+    };
+
+    STATE.updateFromURL = function(){
+        STATE = this.getObjectFromURLString( location.hash );
+    };
+    STATE.updateToURL = function(){
+        location.hash=STATE.getURL();
+    };
+
+    // URL changes trigger update
+    window.onhashchange = onURLUpdate;
+    function onURLUpdate(e){
+        STATE.updateFromURL();
+        update();
+    }
+    function update(){
+      setAtom( STATE.atom );
+      setProperty( STATE.property );
+    }
+
+    // BUTTONS UPDATE URL
+    $('body').on('click','.card',function(e){
+      STATE.atom=e.currentTarget.dataset.id;
+      STATE.updateToURL();
+    });
+
+    // RADIOS UPDATE URL
+    // property:atomic-radius
+    $('body').on('change','input[type=radio]',function(){
+      STATE.property=$('input:checked')[0].value;
+      STATE.updateToURL();
+    });
+    // ----- END OF APP CONTROLS
+
+
+
+
+    // ----- draw stuff
+
+    var _atom=null;
+
+    function setAtom( id ){
+
+      // for( var i=0; i<FABULA.DATA.atoms.length; i++ ){
+      //   if( a === FABULA.DATA.atoms[i].id ){
+      //     _atom = FABULA.DATA.atoms[i];
+      //   }
+      // }
+
+      _atom = FABULA.getElementByKeyValuePair('id', id );
+
+      $( "#info" ).empty();
+      $( "#info" ).html( infoTemplate( { 'atom':_atom } ) );
+
+      drawAtom( _atom );
+      drawElectrons( _atom );
+    }
+
+    function drawAtom( atom ){
+
+      var canvas = document.getElementById('canvas_'+atom.id);
+      var context = canvas.getContext('2d');
+
+      // context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      
+      var radius = atom['atomic-radius']/10;
+
+      context.beginPath();
+      context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+      // context.fillStyle = getRandomColor();//'green';
+
+      var gradient = context.createRadialGradient(100, 100, 100, 100, 100, 0);
+      gradient.addColorStop(0, getRandomColor() );
+      gradient.addColorStop(1, getRandomColor() );
+      context.fillStyle = gradient;
+        
+      context.fill();
+    }
+
+    function drawElectrons( atom ){
+
+      var SPACING = 10;
+
+      var electrons = atom['electrons'];
+      for( var i=0; i<electrons.length; i++ ){ // loop through each electron SHELL
+
+        var electronCount = electrons[i]; // 360 gives angles for each if we plotting equally
+
+        var canvas = document.getElementById('canvas_'+atom.id);
+        var context = canvas.getContext('2d');
+        
+        var centerX = canvas.width / 2;
+        var centerY = canvas.height / 2;
+        
+        var radius = (atom['atomic-radius']/10) + (SPACING*(i+1));
+
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+        context.lineWidth = 1;
+        context.strokeStyle = '#00aaff';
+
+        // DROP-SHADOW
+        context.shadowColor = 'black';
+        context.shadowBlur = 5;
+        context.shadowOffsetX = 2;
+        context.shadowOffsetY = 2;
+
+        context.stroke();
+
+        // window.console.log( electronCount );
+        for(var j=0; j<electronCount; j++) {
+
+          var ELECTRON_SIZE = 2;
+
+          var x = radius * Math.cos(2 * Math.PI * j / electronCount);
+          var y = radius * Math.sin(2 * Math.PI * j / electronCount);
+
+          context.beginPath();
+          context.arc(centerX+x, centerY+y, ELECTRON_SIZE, 0, 2 * Math.PI, false);
+          context.fillStyle = 'white';
+          context.fill();
+
+        }
+
+      }
+    }
+
+    function getRandomColor() {
+      var hex = Math.floor(Math.random() * 0xFFFFFF);
+      return "#" + ("000000" + hex.toString(16)).substr(-6);
+    }
+
+    // updates the property we want to show on every atom
+    function setProperty(prop){
+      $('.card').each(function(e){ 
+        var id = $(this).data('id');
+        var selector = "."+id+"_property";
+        $(selector).html( FABULA.getElementByKeyValuePair( 'id', id )[prop] );
+      });
+    }
+
+
+  </script>
+
+</body>
+</html>
