@@ -1,30 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
+
   <title>Atom Simulation</title>
+
   <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="static/css/styles.min.css">
   <script type="text/javascript" src="static/js/libs.min.js"></script>
-  <script type="text/javascript" src="static/js/threejs/three.min.js"></script>
-  <script type="text/javascript" src="static/js/pages/3d.min.js"></script>
+  <script type="text/javascript" src="static/js/pages/2d.min.js"></script>
+
+  <style type="text/css"> 
+    canvas {
+/*background: #131c35 linear-gradient(#192853, #131c35);*/
+      background: black;
+
+      display:block;
+        /*background: black;*/
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+    }
+  </style>
+
 </head>
 <body>
   
-  <div id="draw"></div>
+  <canvas id="canvas" width="500" height="500"></canvas>
 
   <div id="ui">
     <div id="menu">
-      <a href="/">home</a>
+      <a href="/pages/atoms.html">atoms</a>
     </div>
     <div id="info"></div>
     <div id="toolbar"></div>
   </div>
 
+  <script type="text/template" id="atom-tmpl">
+    
+    <h1><%= atom.symbol %></h1>
+    <p><%= atom.name %></p>
+    <!-- <%= atom %> -->
+    <!--
+        <% _.each( atom, function( val, prop ){ %>
+          <strong><%= prop %></strong> : <span><%= val %></span><br>
+        <% }) %>
+    -->
+  </script>
+
   <script type="text/javascript" src="static/js/main.min.js"></script>
   <script type="text/javascript">
-  
+
+    var atomTemplate = _.template( $( "#atom-tmpl" ).html() );
+    
     // load data and start app.
     FABULA.loadPageData( 'static/data/atoms/*.json', render );
     var hasRun = false;
@@ -36,6 +67,7 @@
       }
 
       var atom_names = [];
+
       for( var i=0; i<FABULA.DATA.atoms.length; i++ ){
         if( a.toLowerCase() === FABULA.DATA.atoms[i].id.toLowerCase() ){
           atom = FABULA.DATA.atoms[i];
@@ -43,92 +75,120 @@
         atom_names.push(FABULA.DATA.atoms[i]['name']);
       }
 
+      // TODO - IF NOT EXISTS - erro
+      // TODO - FIND ON OTHER FIELDS RATHER THAN JUST NAME
+      $( "#info" ).empty();
+      // $( "#info" ).html( atomTemplate( { 'atom':atom } ) );
+      
+      
       // console.log(atom_names);
       if(!hasRun){
         gui.add(opt, 'atom_select', atom_names ).onChange(function(newValue) {
           window.location.hash = newValue;
           // TODO-set options func
           opt.nucleus = atom['atomic-radius']/40;
+
           // opt.gravity_world = (atom['atomic-weight']/3)-10;
+
         });
       }
 
+
       init(); // restart
+
       hasRun = true;
     }
     window.onhashchange = render;
 
 
-    function boo(){ return (Math.round( Math.random()*1 ) == 1) }
+function boo(){ return (Math.round( Math.random()*1 ) == 1) }
+
     function randomise(){
+
       opt.repulsion_force = Math.random()*500;
       opt.repulsion_distance = Math.random()*50;
+      opt.filter = boo();
       opt.repulision = boo();
       opt.attraction = Math.random()*1000;
+      opt.invert = boo();
       opt.atom_select = "hydrogen";
-      opt.framerate = 10+Math.random()*80;
+      opt.framerate = Math.random()*80;
+      opt.clearScreen = boo();
       opt.showcount = false;
-      opt.ATOM_COUNT = Math.random()*50;
+
+      opt.ATOM_COUNT = Math.random()*200;
+
       // opt.wander = 0;
       // opt.gravity_world = 0;
-      opt.maxSpeed = 1+Math.random()*10;
+      opt.maxSpeed = Math.random()*10;
       opt.damp = Math.random()*1;
       // opt.bounce = -1;
-      opt.nucleus = Math.random()*80;//atom['atomic-radius']/160.5; // TODO - NOT GETTING SET. cos of atom setting
+
+      opt.nucleus = Math.random()*100;//atom['atomic-radius']/160.5; // TODO - NOT GETTING SET. cos of atom setting
+      opt.drawElectrons = boo();
+      opt.electronSize = Math.random()*10;
+
       opt.mouseRepel = true;
       // opt.mouseGrav = false;
       opt.edges = "bounce";
-      opt.color0 = random_clr();
 
-      // opt.rotateX = 0;
+      opt.color0 = random_rgba_array();//[ 0, 128, 255, 0.3 ];//random_rgba_array();//[ 0, 128, 255, 0.3 ]; // RGB with alpha
+      opt.color1 = random_rgba_array();//[ 0, 128, 255, 0.3 ];//andom_rgba_array();//[ 0, 128, 255, 0.3 ]; // RGB with alpha
 
       updateOptions();
       init();
 
       // init();
       return opt;
+
     }
-    $('#draw').on("click",randomise);
 
 
     // all the default settings
     var Options = function() {
-      this.repulsion_force = 20;
-      this.repulsion_distance = 20;
-      this.repulision = true;
-      this.attraction = 600;
+      
+      this.repulsion_force = 500;
+      this.repulsion_distance = 50;
+      this.filter = false;
+      this.repulision = false;
+      this.attraction = 1;
+      this.invert = false;
       this.atom_select = "hydrogen";
       this.framerate = 80;
-      this.ATOM_COUNT = 60;
+      this.clearScreen = true;
+      this.showcount = false;
+
+      this.ATOM_COUNT = 1;
+
       this.gravity_world = 0;
-      this.maxSpeed = 9;
+      this.maxSpeed = 4;
       // this.wander = 0;
       this.damp = 1;
-      // this.bounce = -1;
-      this.bounce = 0;
-      this.nucleus = 18;//atom['atomic-radius']/160.5;
+      this.bounce = -1;
+
+      this.nucleus = 1;//atom['atomic-radius']/160.5;
+      this.drawElectrons = true;
+      this.electronSize = 0.3;
+
       this.mouseRepel = false;
       // this.mouseGrav = false;
-      this.edges = "wrap";
-      this.color0 = random_clr();
-      
-      this.camx = 555;
-      this.camy = 320;
-      this.camz = 1500;
+      this.edges = "bounce";
 
-      this.rotateX = 0;
+      this.color0 = random_rgba_array();//[ 0, 128, 255, 0.3 ];//random_rgba_array();//[ 0, 128, 255, 0.3 ]; // RGB with alpha
+      this.color1 = random_rgba_array();//[ 0, 128, 255, 0.3 ];//andom_rgba_array();//[ 0, 128, 255, 0.3 ]; // RGB with alpha
+// random_rgb();
 
     };
 
 
     var opt = new Options();
     var gui = new dat.GUI();
+    gui.add(opt, 'drawElectrons', true );
+    gui.add(opt, 'electronSize', 0, 60 );
     gui.add(opt, 'nucleus', 0, 100 );
-
-    gui.add(opt, 'camx', -1000, 2000 );
-    gui.add(opt, 'camy', -1000, 2000 );
-    gui.add(opt, 'camz', -1000, 8000 );
-    gui.add(opt, 'rotateX', -360, 360 );
+    gui.add(opt, 'clearScreen');
+    gui.add(opt, 'filter', false );
+    gui.add(opt, 'showcount');
     
     gui.add(opt, "framerate", 0, 100 ).onChange(function(newValue) {
       setFramerate(newValue);
@@ -157,15 +217,25 @@
         var a = atoms[i];
         // a[prop] = v;
         if(newValue){
-          a.setRepelMouse( true, 1000, 100 );
+          a.setRepelMouse( canvas, true, 1000, 100 );
         }else{
-          a.setRepelMouse( false );
+          a.setRepelMouse( canvas, false );
         }
       }
     });
 
     gui.add(opt, 'edges', [ 'bounce', 'wrap'] ).onChange(function(newValue) { // TODO - 'remove' 
-      setAtomsProperty("edges",newValue);// TODO-  if options go in own class this will need to be event.
+      setAtomsProperty("edges",newValue);
+    });
+
+    gui.add(opt, 'invert').onChange(function(newValue) {
+      if(newValue){
+        electron_color = 'black';
+        $('canvas').css('background','white');
+      }else{
+        electron_color = 'white';
+        $('canvas').css('background','black');
+      }
     });
 
     gui.add(opt, 'attraction', 0, 1000).onFinishChange(function(newValue) {
@@ -184,179 +254,62 @@
     });
 
     gui.addColor(opt, 'color0');
+    gui.addColor(opt, 'color1');
+
+
+
+    // for loading and saving configs
+    // gui.remember(opt);
 
     function updateOptions(){
       for (var i in gui.__controllers) {
         gui.__controllers[i].updateDisplay();
       }
-      gui.remember(opt);
+
+        gui.remember(opt);
     }
 
 
 
 
-    var atoms=[];    
-    var atoms_3d=[];
 
-    var WIDTH=window.innerWidth;
-    var HEIGHT=window.innerHeight;
 
-    var container, stats;
-    var camera, scene, renderer;
-    var material;
 
+
+
+    var atoms=[];
+    var canvas = document.getElementById('canvas');
+    var context = canvas.getContext('2d');
+
+    var WIDTH=canvas.width;
+    var HEIGHT=canvas.height;
+
+
+    // var color = random_rgb();
+    // var color2 = random_rgb();
     
     function init(){
 
       updateOptions();
 
-      init_3d();
+      // opt.color = random_rgb();
+      // opt.color2 = random_rgb();
+
+      resizeCanvas();
 
       // make some atoms
       atoms=[];
-      atoms_3d=[];
-
       for(var i=0; i<opt.ATOM_COUNT; i++) {
-        // var p = creatAtom(); // physics
-        // drawAtom(p,i); // 3js
         creatAtom();
       }
 
       createForces();
-      
-      onWindowResize();
-
-      setFramerate(opt.framerate);
     }
 
 
-
-    function init_3d(){
-
-        // container = document.createElement( 'div' );
-        // document.body.appendChild( container );
-        container = $("#draw");
-
-        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
-        // camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
-        // camera.position.y = 400;
-
-        scene = new THREE.Scene();
-        // scene.background = new THREE.Color( 0xffffff );
-
-        var light, object;
-
-        scene.add( new THREE.AmbientLight( Math.random()*0xffffff  ) );
-
-        light = new THREE.DirectionalLight( Math.random()*0xffffff  );
-        light.position.set( 0, 1, 0 );
-        scene.add( light );
-
-        // var map = new THREE.TextureLoader().load( 'static/textures/UV_Grid_Sm.jpg' );
-        // map.wrapS = map.wrapT = THREE.RepeatWrapping;
-        // map.anisotropy = 16;
-
-        // material = new THREE.MeshLambertMaterial( { map: map, side: THREE.DoubleSide } );
-        // material = new THREE.MeshNormalMaterial();
-        material = new THREE.MeshPhongMaterial( { ambient: 0x555555, color: opt.color0, specular: 0xffffff, shininess: Math.random()*50, shading: THREE.SmoothShading } );
-        // material = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity: 1, wireframe: true } );
-
-        // create items
-
-        renderer = new THREE.WebGLRenderer( { antialias: true } );
-        renderer.setPixelRatio( window.devicePixelRatio );
-        renderer.setSize( window.innerWidth, window.innerHeight );
-
-
-        container.empty();
-        container.append( renderer.domElement );
-        // container.appendChild( renderer.domElement );
-    }
-
-
-    function creatAtom(){
-
-        var p = new Particle();        
-        p.bounce = opt.bounce;
-        p.grav = opt.gravity_world;
-        p.maxSpeed = opt.maxSpeed;
-        p.damp = opt.damp;
-        p.edges = opt.edges; // might put back to a func??
-
-        // p.addRepelPoint( 300, 300, 900 );
-        // p.wander = 1;
-        p.turnToPath( true );
-
-        // p.setGravToMouse( canvas, true, 1000 );
-        
-        if(opt.mouseRepel){
-          p.setRepelMouse( true, 1000, 100 );
-        }
-
-        p.x = Math.random()*WIDTH;
-        p.y = Math.random()*HEIGHT;
-        p.z = -100 + Math.random()*100;
-
-        // p.vx = Math.random()*10000;
-        // p.vy = Math.random()*10000;
-
-        p.setBounds({xMin:0, yMin:0, xMax: WIDTH, yMax: HEIGHT});
-
-        atoms.push( p );
-
-        // draw it in threejs
-        renderAtom(p);
-
-        // return p;
-    }
-
-
-    function renderAtom(p){
-
-     // var object = new THREE.Mesh( new THREE.PlaneGeometry( 100, 100, 4, 4 ), material );
-        
-
-        var object = new THREE.Mesh( new THREE.SphereGeometry( opt.nucleus, 10, 8 ), material );
-        object.position.set( p.x, p.y, p.z );
-        scene.add( object );
-
-
-
-// var dotGeometry = new THREE.Geometry();
-// dotGeometry.vertices.push(new THREE.Vector3( 0, 0, 0));
-// var dotMaterial = new THREE.PointsMaterial( { size: 1, sizeAttenuation: false } );
-// var object = new THREE.Points( dotGeometry, dotMaterial );
-// scene.add( object );
-
-
-
-
-
-
-// var geom = new THREE.Geometry();
-//             var material = new THREE.PointsMaterial( { size: 1, sizeAttenuation: false } );
-//             var range = 1500;
-//             for (var i = 0; i < 15; i++) {
-//                 var particle = new THREE.Vector3(Math.random() * range - range / 2, Math.random() * range - range / 2, Math.random() * range - range / 2);
-//                 geom.vertices.push(particle);
-//                 var color = new THREE.Color(0x00ff00);
-//                 color.setHSL(color.getHSL().h, color.getHSL().s, Math.random() * color.getHSL().l);
-//                 geom.colors.push(color);
-//             }
-//            var object = new THREE.PointCloud(geom, material);
-//             object.name = "particles";
-//             scene.add(object);
-
-
-
-
-        atoms_3d.push(object);
-
-      // var s = opt.nucleus * (p.z/100);
-      // context.arc(p.x, p.y, s, 0, 2 * Math.PI, false);
-    }
 
     // TODO - instead create particle update functions to existing ?
+
     function createForces(){
 
       clearForces();
@@ -383,6 +336,40 @@
       }
     }
 
+
+
+
+    function creatAtom(){
+
+        var p = new Particle();        
+        p.bounce = opt.bounce;
+        p.grav = opt.gravity_world;
+        p.maxSpeed = opt.maxSpeed;
+        p.damp = opt.damp;
+        p.edges = opt.edges; // might put back to a func??
+
+        // p.addRepelPoint( 300, 300, 900 );
+        // p.wander = 1;
+        // p.turnToPath( true );
+
+        // p.setGravToMouse( canvas, true, 1000 );
+        
+        if(opt.mouseRepel){
+          p.setRepelMouse( canvas, true, 1000, 100 );
+        }
+
+        p.x = Math.random()*WIDTH;
+        p.y = Math.random()*HEIGHT;
+
+        // p.vx = Math.random()*10000;
+        // p.vy = Math.random()*10000;
+
+        p.setBounds({xMin:0, yMin:0, xMax: WIDTH, yMax: HEIGHT});
+
+        atoms.push( p );
+    }
+
+    // updates
     function setAtomsProperty(prop,v){
       for(var i=0; i<atoms.length; i++) {
         var a = atoms[i];
@@ -391,59 +378,156 @@
     }
 
 
-
     function animate() {
         update();
         draw();
     }
-
     function update() {
-
         var i, point;
         for(i = 0; i < atoms.length; i++ ) {
-            
-            // update physics
             point = atoms[i];
             point.update();
-
-            // update threejs
-            var atom_3d = atoms_3d[i];
-            // console.log(atom_3d);
-            // atom_3d.rotateX( point.rotation * Math.PI / 180 );
-            // atom_3d.rotateX( point.rotation / 100 );
-            atom_3d.position.set( point.x, point.y, point.z );
         }
-
     }
-
     function draw() {
 
-      var timer = Date.now() * 0.0001;
-
-      // camera.position.x = opt.camx;
-      // camera.position.y = opt.camy;
-      // camera.position.z = opt.camz;
-
-
-      camera.position.x = opt.camx;
-      camera.position.y = opt.camy;
-      camera.position.z = opt.camz;
-
-
-      if(opt.rotateX){
-        scene.rotateY( opt.rotateX/1000 );
+      if(opt.clearScreen){
+        context.clearRect(0, 0, WIDTH, HEIGHT);
       }
 
-      //camera.position.x = 2000;//Math.cos( timer ) * 800;
-      //camera.position.y = 1500;//Math.cos( timer ) * 800;
-      // camera.position.z = -1800;//Math.sin( timer ) * 800;
+      if(opt.filter){
+        context.globalCompositeOperation = "source-over";
+        context.fillStyle = "rgba(0, 0, 0, 0.3)";
+        context.fillRect(0, 0, WIDTH, HEIGHT);
+        context.globalCompositeOperation = "soft-light";
+      }else{
+        context.globalCompositeOperation = "source-over";
+      }
 
-      // camera.lookAt( scene.position );
 
-      renderer.render( scene, camera );
+
+      var i, point;
+      for(i = 0; i < atoms.length; i++ ) {
+          
+        point = atoms[i];
+        point.width = point.height = 8;// tell it size dims
+        
+        context.save();
+        context.translate(point.x,point.y);
+        context.rotate( point.rotation );
+        context.restore();
+
+        // window.console.log(point);
+
+        drawAtom(point,i);
+        
+        if(opt.drawElectrons){
+          drawElectrons(point);
+        }
+
+            
+      }
+      // context.globalAlpha = 0.1;
+      // context.filter = 'blur(2px)';
+        // window.requestAnimationFrame(animate);
     }
 
 
+    function drawAtom(p,i){
+
+      // var radius = atom['atomic-radius']/160.5;
+
+      // window.console.log(atom['color']);
+      // var color = atom['color'] || 'black';
+
+      if(opt.showcount){
+        context.font = "20px Arial";
+        context.fillText(i,p.x+5,p.y-5);
+      }
+
+
+      context.beginPath();
+      // context.strokeStyle = random_rgb();
+      // context.fillStyle = random_rgb();//color;//0xffffff;//color;//green
+
+      // context.arc(0, 0,2.7, 0, Math.PI*2, false); // draws an atom
+      context.arc(p.x, p.y, opt.nucleus, 0, 2 * Math.PI, false);
+      // window.console.log( 'r'+radius );
+
+      // window.console.log(p);
+
+      var gradient = context.createRadialGradient(p.x, p.y, opt.nucleus, p.x, p.y, 0);
+
+// console.log(array_to_rgba(opt.color0));
+
+      gradient.addColorStop( 0, array_to_rgba(opt.color0) );
+      gradient.addColorStop( 1, array_to_rgba(opt.color1) );
+      context.fillStyle = gradient;
+
+      // context.stroke();
+      context.fill();
+      // context.lineWidth = 1;
+      // context.strokeStyle = '#000';
+      // context.stroke();
+
+    }
+
+
+
+    var rotation=0;
+    var electron_color = 'white';////'black';//'blue';//random_rgb();//'green';
+
+    function drawElectrons(p){
+
+      var SPACING = 4;
+
+      var electrons = atom['electrons'];
+      for( var i=0; i<electrons.length; i++ ){
+
+        var electronCount = electrons[i]; // 360 gives angles for each if we plotting equally
+        
+        var radius = (atom['atomic-radius']/10) + (SPACING*(i+1));
+
+        // context.beginPath();
+        // context.arc(p.x, p.y, radius, 0, 2 * Math.PI, false);
+        // context.fillStyle = getRandomColor();//'green';
+        // context.fill();
+        // context.lineWidth = 1;
+        // context.strokeStyle = '#00aaff';
+        // context.stroke();
+
+        // window.console.log( electronCount );
+
+        context.save();
+        for(var j=0; j<electronCount; j++) {
+
+            context.translate(p.x, p.y);
+            context.rotate(rotation);
+            context.translate(-p.x, -p.y);
+            
+            // var electronSize = 0.5;//0.1*j;
+
+            var x = radius * Math.cos(2 * Math.PI * j / electronCount);
+            var y = radius * Math.sin(2 * Math.PI * j / electronCount);   
+
+            context.beginPath();
+            context.arc(p.x+x, p.y+y, opt.electronSize, 0, 2 * Math.PI, false);
+            context.fillStyle = electron_color;//'white';////'black';//'blue';//random_rgb();//'green';
+            context.fill();
+            // context.lineWidth = 1;
+            // context.strokeStyle = '#00aaff';
+            // context.stroke();
+            
+            // update rotation value and request new frame
+            rotation += 10;//j/100000;//0.00001;
+
+        }
+        context.restore();
+
+      }
+
+
+    }
 
 
 // const randomNumber = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
@@ -451,13 +535,6 @@
 // const randomPercent = () => (randomNumber(50, 100) * 0.01).toFixed(2)
 // const randomCssRgba = () => `rgba(${[randomByte(), randomByte(), randomByte(), randomPercent()].join(',')})`
 
-    // function rand_clr() {
-    //     return '0x' + ('00000' + (Math.random() * 16777216 << 0).toString(16)).substr(-6);
-    // }
-
-    function random_clr() {
-      return Math.random() * 0xffffff;
-    }
     function random_rgb() {
         return '#' + ('00000' + (Math.random() * 16777216 << 0).toString(16)).substr(-6);
         return randomCssRgba();
@@ -474,25 +551,40 @@
         return 'rgba(' + Math.round(arr[0]) + ',' + Math.round(arr[1]) + ',' + Math.round(arr[2]) + ',' + arr[3] + ')';
     }
 
+
     var intID;
     function setFramerate(val){
       clearInterval(this.intID)
       this.intID = setInterval( function(){ animate(); }, 1000/val );
       // window.requestAnimationFrame(animate);
     }
+    setFramerate(opt.framerate);
 
-    window.addEventListener( 'resize', onWindowResize, false );
-    function onWindowResize() {
 
-      WIDTH = window.innerWidth;
-      HEIGHT = window.innerHeight;
-
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize( window.innerWidth, window.innerHeight );
-
+    // full scale canvas
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      // context.scale(canvas.width, canvas.height);
+      
+      WIDTH=canvas.width;
+      HEIGHT=canvas.height;
     }
+
+
+    function fullscreen(){
+       var el = document.getElementById('canvas');
+
+       if(el.webkitRequestFullScreen) {
+           el.webkitRequestFullScreen();
+       }
+       else {
+        el.mozRequestFullScreen();
+      }            
+    }
+     
+    canvas.addEventListener("click",randomise);
+
 
 </script>
 
