@@ -68,7 +68,7 @@
     var propTemplate = _.template( $( "#prop-tmpl" ).html() );
 
     // load atom data
-    FABULA.loadPageData( 'static/data/atoms/*.json', render );
+    FABULA.loadPageData( '/static/data/atoms/*.json', render );
 
     function render(){
       drawPeriodicTable();
