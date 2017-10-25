@@ -20,9 +20,11 @@
 
   <div id="ui">
     <div id="menu">
-      <a href="/pages/index.html">atoms</a>
+      <a href="/pages/gallery.html">gallery</a>
       <a href="/pages/images.html">images</a>
       <a href="/pages/data.html">db</a>
+      <a href="/pages/3d.html">3d</a>
+      <a href="/pages/elements.html">elements</a>
     </div>
     <div id="info"></div>
     <!-- <div id="toolbar"></div> -->
@@ -156,15 +158,16 @@ var rotation=0;
       var SPACING = 5;
 
       var electrons = atom['electrons'];
+
+      var canvas = document.getElementById('canvas');
+      var context = canvas.getContext('2d');
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+
+
       for( var i=0; i<electrons.length; i++ ){
 
         var electronCount = electrons[i]; // 360 gives angles for each if we plotting equally
-
-        var canvas = document.getElementById('canvas');
-        var context = canvas.getContext('2d');
-        
-        var centerX = canvas.width / 2;
-        var centerY = canvas.height / 2;
         
         var radius = (atom['atomic-radius']/10) + (SPACING*(i+1));
 
