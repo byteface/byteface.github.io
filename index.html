@@ -128,6 +128,7 @@ function boo(){ return (Math.round( Math.random()*1 ) == 1) }
       opt.drawElectrons = boo();
       opt.electronSize = Math.random()*10;
 
+      opt.mouseHide = false; // hides the cursor
       opt.mouseRepel = true;
       // opt.mouseGrav = false;
       opt.edges = "bounce";
@@ -170,6 +171,7 @@ function boo(){ return (Math.round( Math.random()*1 ) == 1) }
       this.drawElectrons = true;
       this.electronSize = 0.3;
 
+      this.mouseHide = false; // hides the cursor
       this.mouseRepel = false;
       // this.mouseGrav = false;
       this.edges = "bounce";
@@ -211,6 +213,16 @@ function boo(){ return (Math.round( Math.random()*1 ) == 1) }
     gui.add(opt, "bounce").onChange(function(newValue) {
       setAtomsProperty("bounce",newValue);
     });
+
+
+    gui.add(opt, "mouseHide").onChange(function(newValue){
+      if(newValue){
+        $('canvas').css( 'cursor', 'none' );
+      }else{
+        $('canvas').css( 'cursor', 'default' );
+      }
+    });
+
 
     gui.add(opt, "mouseRepel").onChange(function(newValue){
       for(var i=0; i<atoms.length; i++) {
